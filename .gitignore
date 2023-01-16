@@ -59,3 +59,5 @@ logs/
 .lein-repl-history
 .nrepl-port
 .rebel_readline_history
+
+node_modules

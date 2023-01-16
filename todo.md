@@ -19,3 +19,5 @@ client addon nhan request eval se lay js chunk append to script (browser seem ru
 
 check deps, recursive search in : ~/m2/
 
+wget -r -np -nH --cut-dirs=3 -R index.html https://mirror.nju.edu.cn/clojars/dom2edn/
+lein localrepo install ./dom2edn/dom2edn/0.1.0/dom2edn-0.1.0.jar dom2edn/dom2edn 0.1.0

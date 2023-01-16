@@ -1,6 +1,5 @@
 (ns planck.core
-  (:require-macros [cljs.env.macros :refer [with-compiler-env]]
-                   )
+  (:require-macros [cljs.env.macros :refer [with-compiler-env]])
   (:require [cljs.js :as cljs]
             [cljs.tagged-literals :as tags]
             [cljs.tools.reader :as r]
@@ -10,8 +9,7 @@
             [cljs.source-map :as sm]
             [tailrecursion.cljson :refer [cljson->clj]]
             [alandipert.storage-atom :as storage-atom]
-            [dom2edn.core]
-            ))
+            [dom2edn.core]))
 
 (enable-console-print!)
 
@@ -62,8 +60,8 @@
 
 (defn- repl-special-doc [name-symbol]
   (assoc (repl-special-doc-map name-symbol)
-    :name name-symbol
-    :repl-special-function true))
+         :name name-symbol
+         :repl-special-function true))
 
 (defn resolve
   "Given an analysis environment resolve a var. Analogous to
@@ -120,8 +118,8 @@
 
 #_(defn load [sym {:keys [name macros path] :as full} cb]
 ;  (println "looad" name macros path (type name))
-  (js/$.get (str "http://localhost:5000/?path=" path "&name=" name "&sym=" sym)
-            #(cb (repl-read-string %))))
+    (js/$.get (str "http://localhost:5000/?path=" path "&name=" name "&sym=" sym)
+              #(cb (repl-read-string %))))
 
 (defn require [macros-ns? sym reload]
   (cljs.js/require
@@ -144,15 +142,13 @@
     :*load-fn*      (fn [_ cb]
                       (cb {:lang :clj
                            :source ;"(ns repl.macros) (defmacro m [] 3)"
-                           (str "(ns repl.macros) " source)
-                           }))
+                           (str "(ns repl.macros) " source)}))
     :*eval-fn*      cljs/js-eval}
    'repl.macros
    true
    {:macros-ns  true
     :verbose    (:verbose @app-env)
-    :source-map true
-    }
+    :source-map true}
    (fn [res]
      (println "require result:" res))))
 
@@ -162,10 +158,10 @@
 
 (defn- canonicalize-specs [specs]
   (letfn [(canonicalize [quoted-spec-or-kw]
-                        (if (keyword? quoted-spec-or-kw)
-                          quoted-spec-or-kw
-                          (as-> (second quoted-spec-or-kw) spec
-                                (if (vector? spec) spec [spec]))))]
+            (if (keyword? quoted-spec-or-kw)
+              quoted-spec-or-kw
+              (as-> (second quoted-spec-or-kw) spec
+                (if (vector? spec) spec [spec]))))]
     (map canonicalize specs)))
 
 (defn- process-reloads! [specs]
@@ -197,14 +193,13 @@
             [@current-ns nil]
             ['cljs.user @current-ns])
           pr-cb #(cb (pr-str %))
-          require-sym (rand-int 1e10)
-          ]
+          require-sym (rand-int 1e10)]
       (cljs/eval
        st
        (let [ns-form `(~'ns ~target-ns
                             (~(if macros-ns?
                                 :require-macros :require)
-                              ~@(-> specs canonicalize-specs process-reloads!)))]
+                             ~@(-> specs canonicalize-specs process-reloads!)))]
          (when (:verbose @app-env)
            (println "Implementing"
                     (if macros-ns?
@@ -219,9 +214,7 @@
         :load #(load require-sym %1 %2)
         :eval
         (fn [{:keys [source]}]
-          (let [
-                source2 (str (insertion-code) source)
-                ]
+          (let [source2 (str (insertion-code) source)]
             (try
               (if js/chrome.devtools
                 (js/chrome.devtools.inspectedWindow.eval
@@ -230,17 +223,14 @@
                    (if-not res
                      (println err))))
                 (js/eval source))
-              (catch :default e (println e)))))
-        }
+              (catch :default e (println e)))))}
        (fn [{e :error}]
          (when is-self-require?
            (reset! current-ns restore-ns))
          (when e
-           (println e))
-         )))
+           (println e)))))
     (catch :default e
       (println e))))
-
 
 (defn ^:export run-main [main-ns args]
   (let [main-args (js->clj args)]
@@ -310,35 +300,29 @@
   ([root]
    (load-js "https://localhost:8000" root))
   ([server root]
-   (let [
-         url (str server "?root=" root)
+   (let [url (str server "?root=" root)
          s (js/document.createElement "script")]
      (set! (.-src s) url)
      (js/eval "delete Element.prototype.appendChild")
      (js/document.head.appendChild s))))
 
 (defn ^:export inject-js [url]
-  (let [
-        s (js/document.createElement "script")]
+  (let [s (js/document.createElement "script")]
     (set! (.-src s) url)
     (js/document.head.appendChild s)))
 
 (defn ^:export read-eval-print [source cb]
-  (let [
-        pr-cb #(cb (pr-str %))
-        ]
+  (let [pr-cb #(cb (pr-str %))]
     (try
       (binding [ana/*cljs-ns* @current-ns
                 *ns* (create-ns @current-ns)
                 r/*data-readers* tags/*cljs-data-readers*]
-        (let [
-              expression-form (repl-read-string source)
-              ]
+        (let [expression-form (repl-read-string source)]
           (if (repl-special? expression-form)
             (let [env (assoc
-                        (ana/empty-env)
-                        :context :expr
-                        :ns {:name @current-ns})]
+                       (ana/empty-env)
+                       :context :expr
+                       :ns {:name @current-ns})]
               (cb "")
               (case (first expression-form)
                 defmacro (define-macro source)
@@ -350,28 +334,24 @@
                       (repl/print-doc
                        (let [sym (second expression-form)]
                          (with-compiler-env st (resolve env sym)))))))
-            (let [
-                  expression-form (cond
-                                   (= 'load expression-form) `(js/planck.core.load-js)
-                                   (and (seq? expression-form)
-                                        (= 'load (first expression-form)))
-                                   `(js/planck.core.load-js ~@(rest expression-form))
-                                   (= 'inject-js expression-form)
-                                   `(js/planck.core.inject-js ~(js/chrome.extension.getURL "/jquery-2.1.1.min.js"))
-                                   (and (seq? expression-form)
-                                        (= 'dom2edn (first expression-form)))
-                                   `(js/dom2edn.core.dom2edn ~@(rest expression-form))
-                                   :default `(pr-str ~expression-form))
-                  ]
+            (let [expression-form (cond
+                                    (= 'load expression-form) `(js/planck.core.load-js)
+                                    (and (seq? expression-form)
+                                         (= 'load (first expression-form)))
+                                    `(js/planck.core.load-js ~@(rest expression-form))
+                                    (= 'inject-js expression-form)
+                                    `(js/planck.core.inject-js ~(js/chrome.extension.getURL "/jquery-2.1.1.min.js"))
+                                    (and (seq? expression-form)
+                                         (= 'dom2edn (first expression-form)))
+                                    `(js/dom2edn.core.dom2edn ~@(rest expression-form))
+                                    :default `(pr-str ~expression-form))]
               (cljs/eval
                st
                expression-form
                {:ns         @current-ns
                 :load       load
                 :eval       (fn [{:keys [source]}]
-                              (let [
-                                    source2 (str (insertion-code) source)
-                                    ]
+                              (let [source2 (str (insertion-code) source)]
                                 (try
                                   (if js/chrome.devtools
                                     (js/chrome.devtools.inspectedWindow.eval
@@ -385,8 +365,7 @@
                 :source-map false
                 :verbose    (:verbose @app-env)
                 :context       :expr
-                :def-emits-var true
-                }
+                :def-emits-var true}
                (fn [{:keys [ns value error] :as ret}]
                  (when error
                    (pr-cb error))))))))
@@ -396,11 +375,9 @@
 (def get-history #(clj->js @history-atom))
 (defn notify-push [line]
   (swap! history-atom
-         #(let [
-                updated (conj % line)
+         #(let [updated (conj % line)
                 new-len (count updated)
-                max-len 10
-                ]
+                max-len 10]
             (if (< max-len new-len)
               (subvec updated (- new-len max-len))
               updated))))
